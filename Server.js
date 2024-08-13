@@ -56,7 +56,7 @@ server.post('/addPlayerData', (req, res) => {
         else {
             if (results.length < 1) 
             {
-                connection.query(`INSERT INTO music (songName, playerName, score) VALUES ('${SongName}', '${PlayerName}', '${Score}'`, (err, results, fields) => {
+                connection.query(`INSERT INTO music (songName, playerName, score) VALUES ('${SongName}', '${PlayerName}', '${Score}')`, (err, results, fields) => {
                     if (err) 
                     {
                         console.error('랭크등록 오류: ' + err);
@@ -117,6 +117,34 @@ server.post('/addPlayerData', (req, res) => {
     
     //console.log(req.body);
     // 데이터 응답
+});
+
+server.post('/searchSongData', (req, res) => 
+{
+    const SongName = req.body;
+    connection.query(`SELECT * FROM music WHERE songName = '${SongName.SongName}'`, (err, results, fields) => {
+        if(results.length>=1)
+        {
+            const {songName,playerName,score} = results[0];
+            if (err) 
+            {
+                console.error('검색 중 오류 발생 : ' + err);
+                //res.status(500).send('중복 아이디 확인 중 오류 발생');
+                res.send('검색 중 오류 발생');
+                throw err;
+            }
+            else
+            {
+                res.status(200).json(results[0],);
+            }
+        }
+        else
+        {
+            res.send('해당 곡은 플레이 한 기록이 없습니다! 지금 도전해보세요!');
+        }
+
+     });
+
 });
 
 server.listen(port, () => {
