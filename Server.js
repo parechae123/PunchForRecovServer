@@ -25,6 +25,13 @@ connection.connect((err)=>{
     console.log("연결 되었습니다. 연결 ID : " + connection.threadId);
 
 });
+
+
+const DataInfo = {
+    SongName: "",
+    PayerName: "",
+    Score: 0,
+};
 connection.query('SELECT * FROM music',(err,results,fields)=>{
     
     if(err)
@@ -32,21 +39,13 @@ connection.query('SELECT * FROM music',(err,results,fields)=>{
         console.error(err.stack);
         throw err;
     }
-    
     const dataArray = results;
 
     console.log('데이터 배열 : ',dataArray);
 });
 
-const DataInfo = {
-    SongName: "",
-    PayerName: "",
-    Score: 0,
-    Rank: 0
-};
-
 server.post('/addPlayerData', (req, res) => {
-    const { SongName, PlayerName, Score ,Rank} = req.body;
+    const { SongName, PlayerName, Score } = req.body;
     connection.query(`SELECT * FROM music WHERE songName = '${SongName}'`, (err, results, fields) => {
         if (err) 
         {
@@ -55,9 +54,9 @@ server.post('/addPlayerData', (req, res) => {
             res.send('랭크등록 중 오류발생');
         } 
         else {
-            if (results.length <= 10) 
+            if (results.length < 1) 
             {
-                connection.query(`INSERT INTO music (songName, playerName, score, dataRank) VALUES ('${SongName}', '${PlayerName}', '${Score}','${Rank}')`, (err, results, fields) => {
+                connection.query(`INSERT INTO music (songName, playerName, score) VALUES ('${SongName}', '${PlayerName}', '${Score}'`, (err, results, fields) => {
                     if (err) 
                     {
                         console.error('랭크등록 오류: ' + err);
@@ -66,25 +65,57 @@ server.post('/addPlayerData', (req, res) => {
                     } else 
                     {
                         const dataArray = results;
-                        console.log('랭크등록 결과: ', dataArray);
                         res.send('랭크등록 성공');
                     }
                 });
             } 
             else 
             {
+                if(err)
+                {
+                    res.send("오류 발생");
+                }
+                else
+                {
+                    connection.query('SELECT songName AS DeleteSongName, playerName AS DeletePlayerName, score AS DeleteScore FROM music', (error, results) => 
+                        {
+                            if (error) throw error;
+                        
+                            if (results.length > 0) {
+                                let minRecord = results[0];
 
+                                
+                                console.log('Record with the lowest score:');
+                                console.log(`Song Name: ${minRecord.DeleteSongName}`);
+                                console.log(`Player Name: ${minRecord.DeletePlayerName}`);
+                                console.log(`Score: ${minRecord.DeleteScore}`);
+                                if(minRecord.DeleteScore<= Score)
+                                {
+                                    connection.query(`DELETE FROM music WHERE  songName=${minRecord.DeleteSongName} AND playerName=${minRecord.DeletePlayerName} AND score=${minRecord.DeleteScore} LIMIT 1`);
+                                    connection.query(`INSERT INTO music (songName, playerName, score) VALUES ('${SongName}', '${PlayerName}', '${Score}')`, (err, results, fields));
+                                    res.send("1등이어유.");
+                                }
+                                else
+                                {
+                                    res.send("허접");
+                                }
+                            } else {
+                                console.log('No records found.');
+                            }
+                        });
+
+                }
                 //여기다가 반복문+비교문 넣으면 됨
             }
         }
     });
     // 요청 본문에서 데이터를 추출하여 로그에 출력
-    console.log(SongName + " : 음악 이름");
-    console.log(PlayerName + " : 사용자 이름");
-    console.log(Score + " : 점수");
-    console.log(Rank + " : 순위");
+    //console.log(SongName + " : 음악 이름");
+    //console.log(PlayerName + " : 사용자 이름");
+    //console.log(Score + " : 점수");
+    //console.log(Rank + " : 순위");
     
-    console.log(req.body);
+    //console.log(req.body);
     // 데이터 응답
 });
 
